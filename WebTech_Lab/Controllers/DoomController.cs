@@ -1,0 +1,32 @@
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using WebTech_Lab.Models;
+
+namespace WebTech_Lab.Controllers
+{
+    public class DoomController : Controller
+    {
+        private readonly ILogger<HomeController> _logger;
+
+        public DoomController(ILogger<HomeController> logger)
+        {
+            _logger = logger;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+    }
+}

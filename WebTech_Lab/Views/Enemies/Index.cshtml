@@ -1,0 +1,59 @@
+﻿@model IEnumerable<WebTech_Lab.Data.Enemy>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.EnemyName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EnemyHealth)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EnemyDamage)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EnemyType)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Photo)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.EnemyName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EnemyHealth)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EnemyDamage)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EnemyType.EnemyTypeId)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Photo.PhotoId)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.EnemyId">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.EnemyId">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.EnemyId">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

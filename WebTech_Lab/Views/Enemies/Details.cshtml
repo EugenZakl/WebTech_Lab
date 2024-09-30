@@ -1,0 +1,42 @@
+﻿@model WebTech_Lab.Data.Enemy
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1 style="text-align: center; color: white;">@Model.EnemyName</h1>
+
+<div class="container" style="background-color: rgba(255, 255, 255, 0.8); border-radius: 10px; padding: 20px; width: 80%; margin: auto;">
+    <div class="left-column" style="flex: 1; margin-right: 20px;">
+        <h4>Enemy History</h4>
+        <hr />
+        <p>@Html.Raw(@Model.EnemyDescription)</p>
+    </div>
+
+    <div class="right-column" style="flex: 1; text-align: center;">
+        <img src="@Html.DisplayFor(model => model.Photo.PhotoUrl)" alt="@Model.EnemyName" style="width: 100%; max-width: 300px; height: auto; margin-bottom: 20px;" />
+        <div class="stats" style="border: 1px solid #ddd; padding: 10px; border-radius: 5px; background-color: #f9f9f9;">
+            <h4>Enemy Stats</h4>
+            <dl class="row">
+                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.EnemyHealth)</dt>
+                <dd class="col-sm-6">@Html.DisplayFor(model => model.EnemyHealth)</dd>
+                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.EnemyDamage)</dt>
+                <dd class="col-sm-6">@Html.DisplayFor(model => model.EnemyDamage)</dd>
+                <dt class="col-sm-6">@Html.DisplayNameFor(model => model.EnemyType)</dt>
+                <dd class="col-sm-6">@Html.DisplayFor(model => model.EnemyType.Type)</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <a asp-action="Edit" asp-route-id="@Model?.EnemyId">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
+<script>
+    document.body.style.backgroundImage = "url('@Model.Photo.PhotoBackgroundUrl')";
+    document.body.style.backgroundSize = "cover";
+    document.body.style.backgroundPosition = "center";
+    document.body.style.backgroundRepeat = "no-repeat";
+    document.body.style.margin = "0";
+</script>

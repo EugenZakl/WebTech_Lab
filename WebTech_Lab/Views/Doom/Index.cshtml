@@ -1,0 +1,624 @@
+﻿<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Шутер</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background-color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        #gameContainer {
+            position: relative;
+            display: inline-block;
+            background-image: url('https://64.media.tumblr.com/00ec803404f6e9d6583f92d8870b5fb8/tumblr_p7k8f3fMWS1wvbydeo1_1280.png'); 
+            background-size: cover; 
+            background-position: center; 
+            width: 800px; 
+            height: 600px; 
+        }
+
+        canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: auto;
+            background-color: transparent; 
+        }
+
+        #startButton {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 10; 
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+            #startButton:hover {
+                background-color: #218838;
+            }
+
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            text-align: left;
+            color: #333;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            width: 220px;
+        }
+
+        #counters {
+            position: absolute;
+            top: 150px; 
+            left: 10px;
+            text-align: left;
+            color: #333;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            width: 220px;
+        }
+
+        
+        .bar {
+            width: 200px;
+            height: 25px;
+            border: 2px solid #333;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: #ddd;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .bar-inner {
+            height: 100%;
+            border-radius: 5px 0 0 5px;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .bar-text {
+            position: relative;
+            z-index: 1;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        
+        #healthBarInner {
+            background-color: #dc3545; 
+            width: 100%; 
+            transition: width 0.3s;
+        }
+
+        #experienceBarInner {
+            background-color: #28a745; 
+            width: 0%; 
+            transition: width 0.3s;
+        }
+
+        
+        #counters div {
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Шутер Гра</h1>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div id="info" style="display: none;">
+            <div class="bar" id="healthBar">
+                <div class="bar-inner" id="healthBarInner"></div>
+                <span class="bar-text" id="healthCounter">500</span>
+            </div>
+            <div class="bar" id="experienceBar">
+                <div class="bar-inner" id="experienceBarInner"></div>
+                <span class="bar-text" id="experienceCounter">0</span>
+            </div>
+        </div>
+
+        <div id="counters" style="display: none;">
+            <div>Хвиль пройдено: <span id="waveCounter">0</span></div>
+            <div>Вбито ворогів: <span id="killCounter">0</span></div>
+            <div>Вдосконалень: <span id="upgradeCounter">0</span></div>
+        </div>
+
+        <button id="startButton">Почати гру</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startButton = document.getElementById('startButton');
+        const countersDiv = document.getElementById('counters');
+        const infoDiv = document.getElementById('info');
+        const waveCounterSpan = document.getElementById('waveCounter');
+        const killCounterSpan = document.getElementById('killCounter');
+        const upgradeCounterSpan = document.getElementById('upgradeCounter');
+        const healthCounter = document.getElementById('healthCounter');
+        const experienceCounter = document.getElementById('experienceCounter');
+        const healthBarInner = document.getElementById('healthBarInner');
+        const experienceBarInner = document.getElementById('experienceBarInner');
+
+        const playerImage = new Image();
+        playerImage.src = 'https://png.klev.club/uploads/posts/2024-04/png-klev-club-p3g0-p-personazh-pikselnii-png-3.png'; 
+
+        const orcEnemyImage = new Image();
+        orcEnemyImage.src = 'https://e7.pngegg.com/pngimages/748/778/png-clipart-ghost-pixel-art-gif-cute-pixel-angle-text-thumbnail.png'; 
+
+        const shooterEnemyImage = new Image();
+        shooterEnemyImage.src = 'https://i.pinimg.com/736x/91/71/ca/9171ca1974ef05f351da1ab1aad47910.jpg'; 
+
+        const knightEnemyImage = new Image();
+        knightEnemyImage.src = 'https://w7.pngwing.com/pngs/537/680/png-transparent-crusades-middle-ages-knight-crusader-knights-templar-knight-desktop-wallpaper-cuirass-breastplate-thumbnail.png';
+
+        let gameRunning = false;
+
+        let player = {
+            x: canvas.width / 2 - 25, 
+            y: canvas.height / 2 - 25,
+            width: 50,
+            height: 50,
+            speed: 15, 
+            level: 1,
+            experience: 0,
+            experienceToLevelUp: 10,
+            health: 500, 
+            bulletSpeed: 7,
+            bulletCount: 1,
+            reloadTime: 500, 
+            lastFired: 0, 
+        };
+
+        let bullets = [];
+        let enemyBullets = [];
+        let enemies = [];
+        let enemyCount = 5;
+        let levelUpMessage = "";
+        let nextWaveTime = 7000; 
+        let nextWaveInterval = 7000;
+
+        let killCounter = 0; 
+        let waveCounter = 0; 
+        let upgradeCounter = 0; 
+
+        function createEnemies(count) {
+            for (let i = 0; i < count; i++) {
+                let type;
+                if (waveCounter >= 4 && Math.random() < 0.5) {
+                    type = 'knight'; 
+                } else {
+                    type = Math.random() < 0.5 ? 'orc' : 'shooter';
+                }
+                const x = Math.random() * (canvas.width - 40);
+                const y = Math.random() * (canvas.height - 40);
+                enemies.push({
+                    x: x < player.x ? x + 100 : x, 
+                    y: y < player.y ? y + 100 : y,
+                    width: 40,
+                    height: 40,
+                    speed: 0.67,
+                    alive: true,
+                    type: type,
+                    shotsTaken: 2, 
+                    shootCooldown: 0,
+                });
+            }
+            waveCounter++;
+            waveCounterSpan.textContent = waveCounter;
+        }
+
+        function drawPlayer() {
+            if (playerImage.complete) {
+                ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+            } else {
+                ctx.fillStyle = 'blue'; 
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+            }
+        }
+
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                if (enemy.alive) {
+                    if (enemy.type === 'orc') {
+                        if (orcEnemyImage.complete) {
+                            ctx.drawImage(orcEnemyImage, enemy.x, enemy.y, enemy.width, enemy.height);
+                        } else {
+                            ctx.fillStyle = 'red'; 
+                            ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                        }
+                    } else if (enemy.type === 'shooter') {
+                        if (shooterEnemyImage.complete) {
+                            ctx.drawImage(shooterEnemyImage, enemy.x, enemy.y, enemy.width, enemy.height);
+                        } else {
+                            ctx.fillStyle = 'red'; 
+                            ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                        }
+                    } else if (enemy.type === 'knight') {
+                        if (knightEnemyImage.complete) {
+                            ctx.drawImage(knightEnemyImage, enemy.x, enemy.y, enemy.width, enemy.height);
+                        } else {
+                            ctx.fillStyle = 'green'; 
+                            ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                        }
+                    }
+                }
+            });
+        }
+
+
+        function drawBullets() {
+            ctx.fillStyle = 'black';
+            bullets.forEach(bullet => {
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+        }
+
+        function drawEnemyBullets() {
+            ctx.fillStyle = 'orange';
+            enemyBullets.forEach(bullet => {
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+        }
+
+        function drawBars() {
+            const healthPercentage = (player.health / 500) * 100;
+            healthBarInner.style.width = `${healthPercentage}%`;
+
+            const experiencePercentage = (player.experience / player.experienceToLevelUp) * 100;
+            experienceBarInner.style.width = `${experiencePercentage}%`;
+        }
+
+        function drawLevelUpMessage() {
+            if (levelUpMessage) {
+                ctx.fillStyle = 'gold';
+                ctx.font = '30px Arial';
+                ctx.fillText(levelUpMessage, canvas.width / 2 - 150, canvas.height / 2);
+            }
+        }
+
+        function drawNextWaveTimer() {
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Next Wave in: ${Math.ceil(nextWaveTime / 1000)}s`, canvas.width - 220, 30);
+        }
+
+        function drawCounters() {
+            waveCounterSpan.textContent = waveCounter;
+            killCounterSpan.textContent = killCounter;
+            upgradeCounterSpan.textContent = upgradeCounter;
+        }
+
+        function updateBullets() {
+            bullets.forEach(bullet => {
+                bullet.x += bullet.dx;
+                bullet.y += bullet.dy;
+            });
+            bullets = bullets.filter(bullet => bullet.x >= 0 && bullet.x <= canvas.width && bullet.y >= 0 && bullet.y <= canvas.height);
+        }
+
+        function updateEnemyBullets() {
+            enemyBullets.forEach(bullet => {
+                bullet.x += bullet.dx;
+                bullet.y += bullet.dy;
+            });
+            enemyBullets = enemyBullets.filter(bullet => bullet.x >= 0 && bullet.x <= canvas.width && bullet.y >= 0 && bullet.y <= canvas.height);
+        }
+
+        function updateEnemies() {
+            enemies.forEach(enemy => {
+                if (enemy.alive) {
+                    const dx = player.x - enemy.x;
+                    const dy = player.y - enemy.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance > 0) {
+                        enemy.x += (dx / distance) * enemy.speed;
+                        enemy.y += (dy / distance) * enemy.speed;
+                    }
+
+                    if (
+                        player.x < enemy.x + enemy.width &&
+                        player.x + player.width > enemy.x &&
+                        player.y < enemy.y + enemy.height &&
+                        player.y + player.height > enemy.y
+                    ) {
+                        player.health -= enemy.type === 'melee' ? 5 : 0; 
+                        enemy.alive = false;
+                        updateHealthAndExperience();
+                        if (player.health <= 0) {
+                            alert("Game Over!");
+                            resetGame();
+                        }
+                    }
+
+                    if (enemy.type === 'shooter') {
+                        enemy.shootCooldown -= 16; 
+                        if (enemy.shootCooldown <= 0) {
+                            enemyBullets.push({
+                                x: enemy.x + enemy.width / 2,
+                                y: enemy.y + enemy.height / 2,
+                                width: 5,
+                                height: 5,
+                                dx: (player.x - (enemy.x + enemy.width / 2)) / 60, 
+                                dy: (player.y - (enemy.y + enemy.height / 2)) / 60, 
+                            });
+                            enemy.shootCooldown = 3000; 
+                        }
+                    }
+                }
+            });
+        }
+
+
+        function shootEnemy(enemy) {
+            const dx = (player.x + player.width / 2) - (enemy.x + enemy.width / 2);
+            const dy = (player.y + player.height / 2) - (enemy.y + enemy.height / 2);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const velocityX = (dx / distance) * 3; 
+            const velocityY = (dy / distance) * 3;
+
+            enemyBullets.push({
+                x: enemy.x + enemy.width / 2,
+                y: enemy.y + enemy.height / 2,
+                width: 5,
+                height: 5,
+                dx: velocityX,
+                dy: velocityY,
+            });
+        }
+
+
+        function checkBulletCollisions() {
+            bullets.forEach(bullet => {
+                enemies.forEach(enemy => {
+                    if (enemy.alive &&
+                        bullet.x < enemy.x + enemy.width &&
+                        bullet.x + bullet.width > enemy.x &&
+                        bullet.y < enemy.y + enemy.height &&
+                        bullet.y + bullet.height > enemy.y) {
+                        enemy.shotsTaken++;
+                        if (enemy.type === 'knight' && enemy.shotsTaken < 2) {
+                            bullet.hit = true; 
+                        } else {
+                            enemy.alive = false; 
+                            bullet.hit = true;
+                            killCounter++;
+                            player.experience += 10;
+                            updateCounters();
+                            updateHealthAndExperience();
+                            if (player.experience >= player.experienceToLevelUp) {
+                                levelUp();
+                            }
+                        }
+                    }
+                });
+            });
+            bullets = bullets.filter(bullet => !bullet.hit);
+        }
+
+        function checkEnemyBulletCollisions() {
+            enemyBullets.forEach(bullet => {
+                if (
+                    bullet.x < player.x + player.width &&
+                    bullet.x + bullet.width > player.x &&
+                    bullet.y < player.y + player.height &&
+                    bullet.y + bullet.height > player.y
+                ) {
+                    player.health -= 5;
+                    bullet.hit = true;
+                    updateHealthAndExperience();
+                    if (player.health <= 0) {
+                        alert("Game Over!");
+                        resetGame();
+                    }
+                }
+            });
+            enemyBullets = enemyBullets.filter(bullet => !bullet.hit);
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPlayer();
+            drawEnemies();
+            drawBullets();
+            drawEnemyBullets();
+            drawBars();
+            drawLevelUpMessage();
+            drawNextWaveTimer();
+            drawCounters();
+
+            updateBullets();
+            updateEnemyBullets();
+            updateEnemies();
+            checkBulletCollisions();
+            checkEnemyBulletCollisions();
+
+            nextWaveTime -= 16; 
+            if (nextWaveTime <= 0) {
+                createEnemies(enemyCount);
+                nextWaveTime = nextWaveInterval; 
+                enemyCount += 2; 
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+   
+        function shoot(event) {
+            const now = Date.now();
+            if (now - player.lastFired < player.reloadTime) return; 
+            player.lastFired = now;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            const dx = mouseX - (player.x + player.width / 2);
+            const dy = mouseY - (player.y + player.height / 2);
+            const angle = Math.atan2(dy, dx);
+
+            for (let i = 0; i < player.bulletCount; i++) {
+                const angleOffset = (i - (player.bulletCount - 1) / 2) * (5 * Math.PI / 180); 
+                bullets.push({
+                    x: player.x + player.width / 2,
+                    y: player.y + player.height / 2,
+                    width: 5,
+                    height: 5,
+                    dx: Math.cos(angle + angleOffset) * player.bulletSpeed,
+                    dy: Math.sin(angle + angleOffset) * player.bulletSpeed,
+                });
+            }
+        }
+
+        function levelUp() {
+            player.level++;
+            player.experience -= player.experienceToLevelUp;
+            player.experienceToLevelUp = Math.floor(player.experienceToLevelUp * 1.5); 
+            levelUpMessage = `Level Up! Тепер рівень ${player.level}`;
+            setTimeout(() => { levelUpMessage = ""; }, 2000);
+
+            setTimeout(() => {
+                let choice = prompt("Виберіть вдосконалення:\n1: Підвищити швидкість стрільби\n2: Збільшити кількість куль на 1\n3: Відновити 100 HP");
+                switch (choice) {
+                    case '1':
+                        player.reloadTime = Math.max(200, player.reloadTime - 200); 
+                        upgradeCounter++;
+                        break;
+                    case '2':
+                        player.bulletCount++;
+                        upgradeCounter++;
+                        break;
+                    case '3':
+                        player.health = Math.min(player.health + 100, 500); 
+                        updateHealthAndExperience();
+                        upgradeCounter++;
+                        break;
+                    default:
+                        alert("Невірний вибір! Вдосконалення не вибрано.");
+                        break;
+                }
+                updateCounters();
+            }, 500);
+        }
+
+        function startGame() {
+            if (gameRunning) return; 
+            gameRunning = true;
+            startButton.style.display = 'none'; 
+            countersDiv.style.display = 'block'; 
+            infoDiv.style.display = 'block'; 
+
+            createEnemies(enemyCount);
+            gameLoop();
+        }
+
+        function resetGame() {
+            player.x = canvas.width / 2 - 25;
+            player.y = canvas.height / 2 - 25;
+            player.level = 1;
+            player.experience = 0;
+            player.experienceToLevelUp = 10;
+            player.health = 500;
+            player.bulletSpeed = 7;
+            player.bulletCount = 1;
+            player.reloadTime = 500;
+            player.lastFired = 0;
+
+            bullets = [];
+            enemyBullets = [];
+            enemies = [];
+            enemyCount = 5;
+            levelUpMessage = "";
+            nextWaveTime = 7000;
+            nextWaveInterval = 7000;
+
+            killCounter = 0;
+            waveCounter = 0;
+            upgradeCounter = 0;
+
+            waveCounterSpan.textContent = waveCounter;
+            killCounterSpan.textContent = killCounter;
+            upgradeCounterSpan.textContent = upgradeCounter;
+
+            healthCounter.textContent = player.health;
+            experienceCounter.textContent = player.experience;
+            healthBarInner.style.width = '100%';
+            experienceBarInner.style.width = '0%';
+
+            countersDiv.style.display = 'none';
+            infoDiv.style.display = 'none';
+            startButton.style.display = 'inline-block';
+            gameRunning = false;
+        }
+
+        startButton.addEventListener('click', startGame);
+
+        canvas.addEventListener('mousedown', shoot);
+
+        window.addEventListener('keydown', (event) => {
+            if (!gameRunning) return; 
+            switch (event.key) {
+                case 'ArrowUp':
+                    player.y = Math.max(0, player.y - player.speed);
+                    break;
+                case 'ArrowDown':
+                    player.y = Math.min(canvas.height - player.height, player.y + player.speed);
+                    break;
+                case 'ArrowLeft':
+                    player.x = Math.max(0, player.x - player.speed);
+                    break;
+                case 'ArrowRight':
+                    player.x = Math.min(canvas.width - player.width, player.x + player.speed);
+                    break;
+            }
+        });
+
+        function updateCounters() {
+            waveCounterSpan.textContent = waveCounter;
+            killCounterSpan.textContent = killCounter;
+            upgradeCounterSpan.textContent = upgradeCounter;
+        }
+
+        function updateHealthAndExperience() {
+            healthCounter.textContent = player.health;
+            experienceCounter.textContent = player.experience;
+
+            const healthPercentage = (player.health / 500) * 100;
+            healthBarInner.style.width = `${healthPercentage}%`;
+
+            const experiencePercentage = (player.experience / player.experienceToLevelUp) * 100;
+            experienceBarInner.style.width = `${experiencePercentage}%`;
+        }
+    </script>
+</body>
+</html>
